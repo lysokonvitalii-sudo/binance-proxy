@@ -17,12 +17,13 @@ def get_balance():
 
     timestamp = str(int(time.time() * 1000))
     recv_window = "5000"
-    query = f"accountType=UNIFIED"
-    
+    query = "accountType=UNIFIED"
+
+    # Правильний порядок для Bybit v5
     param_str = timestamp + API_KEY + recv_window + query
     signature = hmac.new(
-        SECRET_KEY.encode(),
-        param_str.encode(),
+        SECRET_KEY.encode("utf-8"),
+        param_str.encode("utf-8"),
         hashlib.sha256
     ).hexdigest()
 
@@ -31,10 +32,16 @@ def get_balance():
         "X-BAPI-API-KEY": API_KEY,
         "X-BAPI-TIMESTAMP": timestamp,
         "X-BAPI-RECV-WINDOW": recv_window,
-        "X-BAPI-SIGN": signature
+        "X-BAPI-SIGN": signature,
+        "Content-Type": "application/json"
     }
 
     response = requests.get(url, headers=headers)
+    
+    # Логуємо відповідь для дебагу
+    if not response.text:
+        return jsonify({"error": "Empty response from Bybit", "status": response.status_code}), 400
+    
     data = response.json()
 
     if data.get("retCode") != 0:
