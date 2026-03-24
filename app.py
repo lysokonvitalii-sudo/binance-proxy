@@ -12,6 +12,9 @@ SECRET_KEY = os.environ.get("BINANCE_SECRET_KEY")
 
 @app.route('/balance')
 def get_balance():
+    if not API_KEY or not SECRET_KEY:
+        return jsonify({"error": "API keys not set"}), 500
+
     timestamp = int(time.time() * 1000)
     query = f"timestamp={timestamp}"
     signature = hmac.new(
@@ -19,12 +22,18 @@ def get_balance():
         query.encode(),
         hashlib.sha256
     ).hexdigest()
-    
+
     url = f"https://api.binance.com/api/v3/account?{query}&signature={signature}"
     headers = {"X-MBX-APIKEY": API_KEY}
     response = requests.get(url, headers=headers)
     
-    balances = [b for b in response.json()["balances"] 
+    data = response.json()
+    
+    # Якщо помилка від Binance — повертаємо її
+    if "code" in data:
+        return jsonify({"binance_error": data}), 400
+    
+    balances = [b for b in data["balances"]
                 if float(b["free"]) > 0]
     return jsonify(balances)
 
