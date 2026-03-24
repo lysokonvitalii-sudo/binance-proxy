@@ -19,7 +19,6 @@ def get_balance():
     recv_window = "5000"
     query = "accountType=UNIFIED"
 
-    # Правильний порядок для Bybit v5
     param_str = timestamp + API_KEY + recv_window + query
     signature = hmac.new(
         SECRET_KEY.encode("utf-8"),
@@ -37,11 +36,10 @@ def get_balance():
     }
 
     response = requests.get(url, headers=headers)
-    
-    # Логуємо відповідь для дебагу
+
     try:
         data = response.json()
-    except Exception:
+    except Exception as e:
         return jsonify({
             "error": "Invalid response from Bybit",
             "status_code": response.status_code,
