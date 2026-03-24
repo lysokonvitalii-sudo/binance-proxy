@@ -7,34 +7,41 @@ import os
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("BINANCE_API_KEY")
-SECRET_KEY = os.environ.get("BINANCE_SECRET_KEY")
+API_KEY = os.environ.get("BYBIT_API_KEY")
+SECRET_KEY = os.environ.get("BYBIT_SECRET_KEY")
 
 @app.route('/balance')
 def get_balance():
     if not API_KEY or not SECRET_KEY:
         return jsonify({"error": "API keys not set"}), 500
 
-    timestamp = int(time.time() * 1000)
-    query = f"timestamp={timestamp}"
+    timestamp = str(int(time.time() * 1000))
+    recv_window = "5000"
+    query = f"accountType=UNIFIED"
+    
+    param_str = timestamp + API_KEY + recv_window + query
     signature = hmac.new(
         SECRET_KEY.encode(),
-        query.encode(),
+        param_str.encode(),
         hashlib.sha256
     ).hexdigest()
 
-    url = f"https://api.binance.com/api/v3/account?{query}&signature={signature}"
-    headers = {"X-MBX-APIKEY": API_KEY}
+    url = f"https://api.bybit.com/v5/account/wallet-balance?{query}"
+    headers = {
+        "X-BAPI-API-KEY": API_KEY,
+        "X-BAPI-TIMESTAMP": timestamp,
+        "X-BAPI-RECV-WINDOW": recv_window,
+        "X-BAPI-SIGN": signature
+    }
+
     response = requests.get(url, headers=headers)
-    
     data = response.json()
-    
-    # Якщо помилка від Binance — повертаємо її
-    if "code" in data:
-        return jsonify({"binance_error": data}), 400
-    
-    balances = [b for b in data["balances"]
-                if float(b["free"]) > 0]
+
+    if data.get("retCode") != 0:
+        return jsonify({"bybit_error": data}), 400
+
+    coins = data["result"]["list"][0]["coin"]
+    balances = [c for c in coins if float(c["walletBalance"]) > 0]
     return jsonify(balances)
 
 if __name__ == '__main__':
