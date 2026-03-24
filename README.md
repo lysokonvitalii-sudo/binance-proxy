@@ -1,1 +1,1 @@
-# binance-proxy
+# bibyt-proxy
