@@ -39,10 +39,14 @@ def get_balance():
     response = requests.get(url, headers=headers)
     
     # Логуємо відповідь для дебагу
-    if not response.text:
-        return jsonify({"error": "Empty response from Bybit", "status": response.status_code}), 400
-    
-    data = response.json()
+    try:
+        data = response.json()
+    except Exception:
+        return jsonify({
+            "error": "Invalid response from Bybit",
+            "status_code": response.status_code,
+            "raw": response.text[:500]
+        }), 400
 
     if data.get("retCode") != 0:
         return jsonify({"bybit_error": data}), 400
